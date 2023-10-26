@@ -1,131 +1,7 @@
-
- /**
- * Daniel Jimenez
- * 202410 Software Development I CEN-3024C-14835
- * 10/07/2023
- *
- * Class: Library
- * Description: The Library class contains the library's book collection and orchestrates the overall program objectives.
- *              It manages operations related to the library's books, including addition, removal, check-out, and check-in.
- */
-package Books;
-
-import java.util.ArrayList;
-
-public class Library {
-    private ArrayList<Book> books;
-
-    public Library() {
-        this.books = new ArrayList<>();
-    }
-
-    public void addBook(Book book) {
-        this.books.add(book);
-    }
-
-    public void removeBookByBarcode(String barcode) {
-        books.removeIf(book -> book.getBarcode().equals(barcode));
-    }
-
-    public void removeBookByTitle(String title) {
-        books.removeIf(book -> book.getTitle().equals(title));
-    }
-
-    public void checkOutBookByTitle(String title) {
-        for (Book book : books) {
-            if (book.getTitle().equals(title)) {
-                book.setStatus("Checked Out");
-                break;
-            }
-        }
-    }
-
-    public void checkInBookByTitle(String title) {
-        for (Book book : books) {
-            if (book.getTitle().equals(title)) {
-                book.setStatus("Available");
-                break;
-            }
-        }
-    }
-
-    public void displayDatabase() {
-        for (Book book : books) {
-            System.out.println(book.getTitle() + " by " + book.getAuthor() + " | Status: " + book.getStatus());
-        }
-    }
-
-    public ArrayList<Book> getAvailableBooks() {
-        ArrayList<Book> available = new ArrayList<>();
-        for (Book book : books) {
-            if ("Available".equals(book.getStatus())) {
-                available.add(book);
-            }
-        }
-        return available;
-    }
-}
-
 /**
  * Daniel Jimenez
  * 202410 Software Development I CEN-3024C-14835
- * 10/07/2023
- *
- * Class: Main
- * Description: Book class to represent individual books in the library.
- */
-
-package Books;
-
-public class Book {
-    private String title;
-    private String author;
-    private String barcode;
-    private String genre;
-    private String status;
-    private String dueDate;
-
-    public Book(String title, String author, String barcode, String genre) {
-        this.title = title;
-        this.author = author;
-        this.barcode = barcode;
-        this.genre = genre;
-        this.status = "Available";
-        this.dueDate = ""; // This can be improved with actual date manipulation later
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public String getBarcode() {
-        return barcode;
-    }
-
-    public String getGenre() {
-        return genre;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    // You can add more getters and setters as needed.
-}
-
-
-/**
- * Daniel Jimenez
- * 202410 Software Development I CEN-3024C-14835
- * 10/07/2023
+ * 10/25/2023
  *
  * Class: LMSApplication
  * Description: Library Management System for removing and adding books by title and barcode.
@@ -147,6 +23,12 @@ public class LMSApplication {
         System.out.println("Course: Software Development I CEN-3024C-14835");
         System.out.println("Date: 10/07/2023");
 
+        // Prepopulate the library with a few books
+        library.addBook(new Book("Harry Potter and the Sorcerer's Stone", "J.K. Rowling", "1234", "Fantasy"));
+        library.addBook(new Book("One Piece", "Eiichiro Oda", "5678", "Shonen Manga"));
+        library.addBook(new Book("Pokemon", "Satoshi Tajiri", "9012", "Adventure1"));
+
+
         // Ask the user for a file name and read books from the file (assuming you'll implement this later)
         System.out.print("Enter the file name: ");
         String fileName = scanner.nextLine();
@@ -165,7 +47,8 @@ public class LMSApplication {
             System.out.println("4. Check out a book by title");
             System.out.println("5. Check in a book by title");
             System.out.println("6. List available books");
-            System.out.println("7. Exit");
+            System.out.println("7. List all books");  // New option
+            System.out.println("8. Exit");
 
             int choice = scanner.nextInt();
             scanner.nextLine(); // Consume newline
@@ -211,17 +94,13 @@ public class LMSApplication {
                     break;
                 case 6:
                     // List available books
-                    ArrayList<Book> availableBooks = library.getAvailableBooks();
-                    if (availableBooks.isEmpty()) {
-                        System.out.println("No available books.");
-                    } else {
-                        System.out.println("Available Books:");
-                        for (Book book : availableBooks) {
-                            System.out.println(book.getTitle() + " by " + book.getAuthor());
-                        }
-                    }
+                    library.displayAvailableBooks();
                     break;
                 case 7:
+                    // List all books
+                    library.displayDatabase();
+                    break;
+                case 8:
                     System.out.println("Exiting Library Management System. Goodbye!");
                     saveBooksToFile(library, fileName); // Assuming you'll implement this later
                     scanner.close();
@@ -241,6 +120,455 @@ public class LMSApplication {
         // Implement code to save books to a file
     }
 }
+/**
+ * Daniel Jimenez
+ * 202410 Software Development I CEN-3024C-14835
+ * 10/25/2023
+ *
+ * Class: Library
+ * Description: The Library class contains the library's book collection and orchestrates the overall program objectives.
+ *              It manages operations related to the library's books, including addition, removal, check-out, and check-in.
+ */
+
+package Books;
+
+import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 
+public class Library {
+    private ArrayList<Book> books;
+
+    public Library() {
+        this.books = new ArrayList<>();
+    }
+
+    public void addBook(Book book) {
+        this.books.add(book);
+    }
+
+    public void removeBookByBarcode(String barcode) {
+        books.removeIf(book -> book.getBarcode().equals(barcode));
+    }
+
+    public void removeBookByTitle(String title) {
+        books.removeIf(book -> book.getTitle().equals(title));
+    }
+
+    public void checkOutBookByTitle(String title) {
+        for (Book book : books) {
+            if (book.getTitle().equals(title)) {
+                book.setStatus("Checked Out");
+                book.setDueDate("4 weeks");  // Updated this line
+                break;
+            }
+        }
+    }
+
+    public void checkInBookByTitle(String title) {
+        for (Book book : books) {
+            if (book.getTitle().equals(title)) {
+                book.setStatus("Available");
+                book.setDueDate(null);
+                break;
+            }
+        }
+    }
+
+    public void displayDatabase() {
+        for (Book book : books) {
+            System.out.print(book.getTitle() + " by " + book.getAuthor() + " | Status: " + book.getStatus());
+
+            if (book.getDueDate() != null) {
+                System.out.print(" | Due Date: " + book.getDueDate());
+            }
+
+            System.out.println();
+        }
+    }
+
+    public void displayAvailableBooks() {
+        System.out.println("Available Books:");
+        for (Book book : getAvailableBooks()) {
+            System.out.print(book.getTitle() + " by " + book.getAuthor());
+
+            if (book.getDueDate() != null) {
+                System.out.print(" | Due Date: " + book.getDueDate());
+            }
+
+            System.out.println(" | Status: " + book.getStatus());
+        }
+    }
+
+    public ArrayList<Book> getAvailableBooks() {
+        ArrayList<Book> available = new ArrayList<>();
+        for (Book book : books) {
+            if ("Available".equals(book.getStatus())) {
+                available.add(book);
+            }
+        }
+        return available;
+    }
+
+}
+/**
+ * Daniel Jimenez
+ * 202410 Software Development I CEN-3024C-14835
+ * 10/25/2023
+ *
+ * Class: GUI
+ * Description: The GUI class implements the graphical user interface for the Library Management System (LMS).
+ *              It provides buttons and text fields to interact with the LMS, such as adding, removing, and
+ *              checking in books, as well as printing the database and exiting the application.
+ */
+
+
+package Books;
+import Books.Book;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+
+public class GUI {
+    private JButton addNewBookButton;
+    private JButton printDatabaseButton;
+    private JButton removeByBarcodeButton;
+    private JButton removeByTitleButton;
+    private JButton checkInByTitleButton;
+
+    private JButton checkOutByTitleButton;
+
+    private JButton addByTitleButton;
+    private JButton exitButton;
+    private JPanel mainPanel;
+    private JTextArea databaseArea;
+    private JTextField barcodeField;
+    private JTextField titleField;
+    private JTextField checkInTitleField;
+    private ArrayList<Book> books;
+
+    public GUI() {
+        mainPanel = new JPanel(new BorderLayout());
+        books = new ArrayList<>(); // Initialize the list of books
+
+        // Initialize components
+        addNewBookButton = new JButton("Add New Book");
+        printDatabaseButton = new JButton("Print Database");
+        removeByBarcodeButton = new JButton("Remove by Barcode");
+        removeByTitleButton = new JButton("Remove by Title");
+        addByTitleButton = new JButton("Add by Title");
+        checkInByTitleButton = new JButton("Check In by Title");
+        checkOutByTitleButton = new JButton("Check Out by Title");
+
+        exitButton = new JButton("Exit");
+        databaseArea = new JTextArea(10, 30);
+        databaseArea.setEditable(false);
+
+        barcodeField = new JTextField(10); // Barcode input
+        titleField = new JTextField(10); // Title input
+        checkInTitleField = new JTextField(10); // Check in by title input
+
+        // Add components to main panel
+        JPanel inputPanel = new JPanel(); // Panel for inputs
+        inputPanel.add(new JLabel("Barcode:"));
+        inputPanel.add(barcodeField);
+        inputPanel.add(removeByBarcodeButton);
+
+        inputPanel.add(new JLabel("Title:"));
+        inputPanel.add(titleField);
+        inputPanel.add(removeByTitleButton);
+        inputPanel.add(addByTitleButton);
+        inputPanel.add(addNewBookButton);
+
+
+        inputPanel.add(new JLabel("Check In Title:"));
+        inputPanel.add(checkInTitleField);
+        inputPanel.add(checkInByTitleButton);
+        inputPanel.add(checkOutByTitleButton);
+
+        inputPanel.add(exitButton);
+
+        JScrollPane scrollPane = new JScrollPane(databaseArea);
+        mainPanel.add(scrollPane, BorderLayout.NORTH);
+        mainPanel.add(inputPanel, BorderLayout.CENTER);
+        mainPanel.add(printDatabaseButton, BorderLayout.SOUTH);
+
+        // Action Listeners
+        addNewBookButton.addActionListener(e -> addBookManually());
+        // Call the method to add books from file
+        printDatabaseButton.addActionListener(e -> updateDatabaseDisplay());
+        removeByBarcodeButton.addActionListener(e -> removeFromDatabaseByBarcode());
+        removeByTitleButton.addActionListener(e -> removeFromDatabaseByTitle());
+        addByTitleButton.addActionListener(e -> addToDatabaseByTitle());
+        checkInByTitleButton.addActionListener(e -> checkInByTitle());
+        checkOutByTitleButton.addActionListener(e -> checkOutByTitle());
+
+        exitButton.addActionListener(e -> exitApplication());
+    }
+
+    private void checkInByTitle() {
+        String titleToCheckIn = checkInTitleField.getText();
+
+        for (Book book : books) {
+            if (book.getTitle().equalsIgnoreCase(titleToCheckIn)) {
+                if (book.getStatus().equalsIgnoreCase("Checked Out")) {
+                    book.setStatus("Checked In");
+                    book.setDueDate(null);
+                    updateDatabaseDisplay();
+                    JOptionPane.showMessageDialog(mainPanel, "Book checked in successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                } else {
+                    JOptionPane.showMessageDialog(mainPanel, "Book is already checked in.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+        }
+
+        JOptionPane.showMessageDialog(mainPanel, "Title not found.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+    private void checkOutByTitle() {
+        String titleToCheckOut = titleField.getText();
+
+        for (Book book : books) {
+            if (book.getTitle().equalsIgnoreCase(titleToCheckOut)) {
+                if (book.getStatus().equalsIgnoreCase("Checked In")) {
+                    book.setStatus("Checked Out");
+                    // Optionally, you can also set the due date for the checked-out book here.
+                    updateDatabaseDisplay();
+                    JOptionPane.showMessageDialog(mainPanel, "Book checked out successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                } else {
+                    JOptionPane.showMessageDialog(mainPanel, "Book is already checked out.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+        }
+
+        JOptionPane.showMessageDialog(mainPanel, "Title not found.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+
+    private void addToDatabaseByTitle() {
+        String titleToAdd = titleField.getText();
+
+        // Check if book with the same title already exists
+        for (Book book : books) {
+            if (book.getTitle().equalsIgnoreCase(titleToAdd)) {
+                JOptionPane.showMessageDialog(mainPanel, "Book with the same title already exists.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
+        // Add new book with the provided title and default values for other fields
+        Book newBook = new Book(titleToAdd, "One", "1234", "Default Genre");
+        books.add(newBook);
+        updateDatabaseDisplay();
+        JOptionPane.showMessageDialog(mainPanel, "Book added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+
+    private void removeFromDatabaseByTitle() {
+        String titleToRemove = titleField.getText();
+
+        for (Book book : books) {
+            if (book.getTitle().equalsIgnoreCase(titleToRemove)) {
+                books.remove(book);
+                updateDatabaseDisplay();
+                JOptionPane.showMessageDialog(mainPanel, "Book removed successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+        }
+
+        JOptionPane.showMessageDialog(mainPanel, "Title not found.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void removeFromDatabaseByBarcode() {
+        String barcodeToRemove = barcodeField.getText();
+
+        for (Book book : books) {
+            if (book.getBarcode().equalsIgnoreCase(barcodeToRemove)) {
+                books.remove(book);
+                updateDatabaseDisplay();
+                JOptionPane.showMessageDialog(mainPanel, "Book removed successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+        }
+
+        JOptionPane.showMessageDialog(mainPanel, "Barcode not found.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void updateDatabaseDisplay() {
+        StringBuilder databaseContents = new StringBuilder();
+        for (Book book : books) {
+            databaseContents.append(book.getTitle())
+                    .append(" by ")
+                    .append(book.getAuthor())
+                    .append(" | Status: ")
+                    .append(book.getStatus())
+                    .append(" | Due Date: ")
+                    .append(book.getDueDate() != null ? book.getDueDate() : "Null")
+                    .append("\n");
+        }
+        databaseArea.setText(databaseContents.toString());
+    }
+
+
+    private void addBookManually() {
+        JTextField titleInput = new JTextField(20);
+        JTextField authorInput = new JTextField(20);
+        JTextField barcodeInput = new JTextField(20);
+        JTextField genreInput = new JTextField(20);
+
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+        panel.add(new JLabel("Title:"));
+        panel.add(titleInput);
+        panel.add(new JLabel("Author:"));
+        panel.add(authorInput);
+        panel.add(new JLabel("Barcode:"));
+        panel.add(barcodeInput);
+        panel.add(new JLabel("Genre:"));
+        panel.add(genreInput);
+
+        int result = JOptionPane.showConfirmDialog(mainPanel, panel, "Enter Book Details", JOptionPane.OK_CANCEL_OPTION);
+        if (result == JOptionPane.OK_OPTION) {
+            String title = titleInput.getText();
+            String author = authorInput.getText();
+            String barcode = barcodeInput.getText();
+            String genre = genreInput.getText();
+
+            if (title.isEmpty() || author.isEmpty() || barcode.isEmpty() || genre.isEmpty()) {
+                JOptionPane.showMessageDialog(mainPanel, "Please enter all fields.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Book book = new Book(title, author, barcode, genre);
+            books.add(book);
+            updateDatabaseDisplay();
+            JOptionPane.showMessageDialog(mainPanel, "Book added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    private void readBooksFromFile(String fileName) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] bookData = line.split(",");
+                if (bookData.length >= 4) {
+                    String title = bookData[0].trim();
+                    String author = bookData[1].trim();
+                    String barcode = bookData[2].trim();
+                    String genre = bookData[3].trim();
+                    Book book = new Book(title, author, barcode, genre);
+                    books.add(book);
+                }
+            }
+            updateDatabaseDisplay();
+            JOptionPane.showMessageDialog(mainPanel, "Books added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(mainPanel, "File not found or error reading the file.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void exitApplication() {
+        int confirm = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            System.exit(0);
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Library Management System");
+            frame.setContentPane(new GUI().mainPanel);
+            frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+            frame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    int confirm = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit", JOptionPane.YES_NO_OPTION);
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        System.exit(0);
+                    }
+                }
+            });
+            frame.pack();
+            frame.setVisible(true);
+        });
+    }
+}
+/**
+ * Daniel Jimenez
+ * 202410 Software Development I CEN-3024C-14835
+ * 10/25/2023
+ *
+ * Class: Book
+ * Description: The Book class represents a book entity within the Library Management System (LMS).
+ *              It provides attributes like title, author, barcode, genre, and related functionalities
+ *              such as getters and setters. This class serves as a core object in the LMS to manage
+ *              the various books available in the library.
+ */
+package Books;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+
+public class Book {
+
+
+    private String title;
+    private String author;
+    private String barcode;
+    private String genre;
+    private String status;
+    private String dueDate;
+
+    public Book(String title, String author, String barcode, String genre) {
+        this.title = title;
+        this.author = author;
+        this.barcode = barcode;
+        this.genre = genre;
+        this.status = "Checked out";
+        this.dueDate = "4 weeks";
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getBarcode() {
+        return barcode;
+    }
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(String dueDate) {
+        this.dueDate = dueDate;
+    }
+}
 
